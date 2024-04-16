@@ -1,0 +1,13 @@
+[package]
+name = "spot-deamon"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dirs = "5.0.1"
+notify-rust = "4.11.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+spot-lib = { path = "../spot-lib" } # Dev
+# spot-lib = { git = "https://github.com/Abishevs/spot-lib.git" } # Prod

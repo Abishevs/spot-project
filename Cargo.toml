@@ -1,0 +1,7 @@
+[workspace]
+
+members = [
+	"spot-lib",
+	"spot-cli",
+	"spot-deamon",
+]

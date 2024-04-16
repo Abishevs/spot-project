@@ -1,0 +1,11 @@
+[Unit]
+Description=SPOT Daemon
+After=network.target
+
+[Service]
+ExecStart=/home/frap/.cargo/bin/spot-deamon
+User=frap
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
