@@ -1,5 +1,6 @@
 use std::time::{Duration, Instant};
 
+#[derive(Debug)]
 pub struct PomodoroTimer {
     duration: Duration,
     start_time: Option<Instant>,
@@ -54,4 +55,3 @@ impl PomodoroTimer {
     }
 
 }
-
