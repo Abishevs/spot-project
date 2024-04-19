@@ -47,18 +47,19 @@ impl Command for PomodoroCommand {
 
 pub struct CommandHandler<'a> {
     db_connection: &'a DbConnection,
-    notifier: Arc<&'a(dyn Notifier + Send + Sync)>,
+    notifier: Arc<dyn Notifier + Send + Sync>,
     pomodoro_service: PomodoroService,
 }
 
 
 impl<'a> CommandHandler<'a> {
     pub fn new(db_connection: &'a DbConnection,
-               notifier: Arc<&(dyn Notifier + Send + Sync)>) -> Self {
+               notifier: Arc<(dyn Notifier + Send + Sync)>) -> Self {
+        let pomodoro_service = PomodoroService::new(Arc::clone(&notifier));
         CommandHandler {
             db_connection,
             notifier,
-            pomodoro_service: PomodoroService::new(notifier.clone()),
+            pomodoro_service,
         }
     }
 

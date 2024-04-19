@@ -1,11 +1,13 @@
 [Unit]
 Description=SPOT Daemon
-After=network.target
+Wants=network-online.target
+After=network-online.target
 
 [Service]
-ExecStart=/home/frap/.cargo/bin/spot-deamon
-User=frap
-Restart=always
+Type=simple
+ExecStart=%h/.cargo/bin/spot-deamon
+Restart=on-failure
+RestartSec=5
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

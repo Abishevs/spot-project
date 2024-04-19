@@ -1,7 +1,9 @@
 #!/bin/bash
-cargo install --path . # Change later by moving binary into /usr/local
+cargo install --path spot-deamon 
 
-sudo cp spotdeamon.service /etc/systemd/system/
-sudo systemctl deamon-reload
-sudo systemctl enable spotdeamon.service
-sudo systemctl start spotdeamon.service
+# Creates if doesnt exist
+mkdir -p ~/.local/share/systemd/user/
+sudo cp templates/spotdeamon.service ~/.local/share/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable spotdeamon.service # To start on login
+systemctl --user start spotdeamon.service
