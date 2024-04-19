@@ -14,10 +14,11 @@ fn main() -> std::io::Result<()> {
     let notifier = notify::DesktopNotifier;
     std::fs::remove_file(&config.socket_path).ok();  
     let listener = service::api::UnixSocketService::start_listener(&config.socket_path)?;
+    let mut handler = handler::CommandHandler::new(&db_connection, &notifier);
 
     for stream in listener.incoming() {
         match stream {
-            Ok(stream) => handler::CommandHandler::new(stream, &db_connection, &notifier).handle()?,
+            Ok(stream) => handler.handle(stream)?,
             Err(e) => eprintln!("ERROR handling unix stream {}", e),
         }
     }

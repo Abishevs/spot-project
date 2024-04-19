@@ -5,53 +5,79 @@ use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::os::unix::net::UnixStream;
 use serde_json::Error;
 
-use spot_lib::commands::{PomodoroCommand, Response};
+use spot_lib::commands::{MainCommand, PomodoroCommand, Response};
 use crate::notify::Notifier;
 use crate::service::pomodoro::PomodoroService;
 use crate::database::DbConnection;
 
-
-pub struct CommandHandler<'a> {
-    stream: UnixStream,
-    db_connection: &'a DbConnection,
-    notifier: &'a dyn Notifier,
+pub trait Command {
+    fn execute(&self, handler: &mut CommandHandler) -> io::Result<String>;
 }
 
-impl<'a> CommandHandler<'a> {
-    pub fn new(stream: UnixStream , db_connection: &'a DbConnection, notifier: &'a dyn Notifier) -> Self {
-        CommandHandler {
-            stream,
-            db_connection,
-            notifier,
+impl Command for MainCommand {
+    fn execute(&self, handler: &mut CommandHandler) -> io::Result<String> {
+        match self {
+            MainCommand::Pomodoro(cmd) => cmd.execute(handler),
         }
     }
-    pub fn handle(&self) -> io::Result<()> {
-        let reader = BufReader::new(&self.stream);
-        let mut writer = BufWriter::new(&self.stream);
+}
+
+impl Command for PomodoroCommand {
+    fn execute(&self, handler: &mut CommandHandler) -> io::Result<String> {
+        match self {
+            PomodoroCommand::Start => {
+                handler.notifier.send("Pomodoro", "Pomodoro started");
+                handler.pomodoro_service.start();
+                Ok("Pomodoro started".to_string())
+            },
+            PomodoroCommand::Stop => {
+                handler.notifier.send("Pomodoro", "Pomodoro stopped");
+                handler.pomodoro_service.stop();
+                Ok("Pomodoro stopped".to_string())
+            },
+            PomodoroCommand::Status => {
+                let status = handler.pomodoro_service.status();
+                handler.notifier.send("Pomodoro", &status);
+                Ok(status)
+            },
+        }
+    }
+}
+
+pub struct CommandHandler<'a> {
+    db_connection: &'a DbConnection,
+    notifier: &'a dyn Notifier,
+    pomodoro_service: PomodoroService,
+}
+
+
+impl<'a> CommandHandler<'a> {
+    pub fn new(db_connection: &'a DbConnection,
+               notifier: &'a dyn Notifier,) -> Self {
+        CommandHandler {
+            db_connection,
+            notifier,
+            pomodoro_service: PomodoroService::new(),
+        }
+    }
+
+    pub fn handle(&mut self, stream: UnixStream) -> io::Result<()> {
+        let reader = BufReader::new(&stream);
+        let mut writer = BufWriter::new(&stream);
 
         for line in reader.lines() {
             let line = line?;
-            let command: Result<PomodoroCommand, Error> = serde_json::from_str(&line);
+            let command: Result<MainCommand, Error> = serde_json::from_str(&line);
+            println!("{}", &line.to_string());
 
             let response = match command {
-                Ok(PomodoroCommand::Start) => {
-                    self.notifier.send("Pomodoro", "Pomodor started"); 
-                    PomodoroService::start(&self.db_connection);
-                    serde_json::to_string(&Response::Success("Pomodoro started".to_string()))
+                Ok(cmd) => {
+                    match cmd.execute(self) {
+                        Ok(msg) => serde_json::to_string(&Response::Success(msg)),
+                        Err(e) => serde_json::to_string(&Response::Error(e.to_string())),
+                    }
                 },
-                Ok(PomodoroCommand::Stop) => {
-                    self.notifier.send("Pomodoro", "Pomodor stoped"); 
-                    PomodoroService::stop(&self.db_connection);
-                    serde_json::to_string(&Response::Success("Pomodoro stopped".to_string()))
-                },
-                Ok(PomodoroCommand::Status) => {
-                    let status = PomodoroService::status(&self.db_connection);
-                    self.notifier.send("PomodoroOOO", &status); 
-                    serde_json::to_string(&Response::Success(status))
-                },
-                Err(_) => {
-                    serde_json::to_string(&Response::Error("Invalid command".to_string()))
-                }
+                Err(_) => serde_json::to_string(&Response::Error("Invalid command".to_string())),
             };
 
             if let Ok(json) = response {

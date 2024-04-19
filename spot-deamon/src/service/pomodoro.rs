@@ -1,25 +1,34 @@
-use crate::database::DbConnection;
 use crate::models::pomodoro::PomodoroTimer;
-pub struct PomodoroService;
+pub struct PomodoroService {
+    pomodoro_timer: Option<PomodoroTimer>,
+}
 
 impl PomodoroService {
-    pub fn start(db_connection: &DbConnection) {
-        let mut timer = PomodoroTimer::new(25 * 60);  // 25 minutes
+    pub fn new() -> Self {
+        PomodoroService {
+            pomodoro_timer: None,
+        }
+    }
+
+    pub fn start(&mut self) {
+        let timer = PomodoroTimer::new(25);
+        self.pomodoro_timer = Some(timer);
+        let timer = self.pomodoro_timer.as_mut().expect("PomodoroTimer must be started");
         timer.start();
-        db_connection.save_timer(&timer);
         println!("Pomodoro started: {:?}", timer);
     }
 
-    pub fn stop(db_connection: &DbConnection) {
-        if let Some(mut timer) = db_connection.get_current_timer() {
+    pub fn stop(&mut self) {
+        if let Some(timer) = self.pomodoro_timer.as_mut() {
             timer.stop();
-            db_connection.update_timer(&timer);
             println!("Pomodoro stopped: {:?}", timer);
         }
     }
 
-    pub fn status(db_connection: &DbConnection) -> String {
-        if let Some(timer) = db_connection.get_current_timer() {
+    pub fn status(&self) -> String {
+        if let Some(timer) = self.pomodoro_timer {
+            let status = timer.status();
+            println!("STATUS: {}", status);
             timer.status()
         } else {
             "No active Pomodoro".to_string()

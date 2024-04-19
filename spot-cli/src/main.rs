@@ -5,7 +5,7 @@ use std::os::unix::net::UnixStream;
 use std::io::{Write, BufRead, BufReader};
 use serde_json;
 
-use spot_lib::commands::{PomodoroCommand, Response};
+use spot_lib::commands::{MainCommand, PomodoroCommand, Response};
 
 #[derive(Parser)]
 #[command(name = "spot", version = "1.0", about = "Software/Studying Pomodoro Organiser & Tracker", long_about = None)]
@@ -73,7 +73,8 @@ fn main() -> std::io::Result<()> {
             //     }
             // }
             let command = PomodoroCommand::from(pomodoro.command.clone());
-            let command_json = serde_json::to_string(&command)?;
+            let main_command = MainCommand::Pomodoro(command);
+            let command_json = serde_json::to_string(&main_command)?;
             stream.write_all(command_json.as_bytes())?;
             stream.write_all(b"\n")?;
 

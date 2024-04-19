@@ -2,6 +2,11 @@ pub mod commands {
     use serde::{Serialize, Deserialize};
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    pub enum MainCommand {
+        Pomodoro(PomodoroCommand),
+    }
+
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
     pub enum PomodoroCommand {
         Start,
         Stop,
