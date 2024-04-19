@@ -3,14 +3,16 @@ use std::time::{Duration, Instant};
 #[derive(Debug, Copy, Clone)]
 pub struct PomodoroTimer {
     duration: Duration,
+    break_time: Duration,
     start_time: Option<Instant>,
 }
 
 
 impl PomodoroTimer {
-    pub fn new(duration_in_min: u64) -> Self {
+    pub fn new(duration_in_min: u64, break_time: u64) -> Self {
         PomodoroTimer {
             duration: Duration::from_secs(duration_in_min * 60),
+            break_time: Duration::from_secs(break_time * 60),
             start_time: None,
         }
     }

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use service::api::ApiService;
 
 mod notify;
@@ -8,10 +10,11 @@ mod models;
 mod utils;
 mod config;
 
-fn main() -> std::io::Result<()> {
+#[tokio::main]
+async fn main() -> std::io::Result<()> {
     let config = config::Config::new("/tmp/spot-deamon.socket");
     let db_connection = database::DbConnection::new();
-    let notifier = notify::DesktopNotifier;
+    let notifier = Arc::new(notify::DesktopNotifier);
     std::fs::remove_file(&config.socket_path).ok();  
     let listener = service::api::UnixSocketService::start_listener(&config.socket_path)?;
     let mut handler = handler::CommandHandler::new(&db_connection, &notifier);

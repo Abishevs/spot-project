@@ -3,6 +3,7 @@ extern crate spot_lib;
 use std::io;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::os::unix::net::UnixStream;
+use std::sync::Arc;
 use serde_json::Error;
 
 use spot_lib::commands::{MainCommand, PomodoroCommand, Response};
@@ -25,10 +26,10 @@ impl Command for MainCommand {
 impl Command for PomodoroCommand {
     fn execute(&self, handler: &mut CommandHandler) -> io::Result<String> {
         match self {
-            PomodoroCommand::Start => {
-                handler.notifier.send("Pomodoro", "Pomodoro started");
-                handler.pomodoro_service.start();
-                Ok("Pomodoro started".to_string())
+            PomodoroCommand::Start { duration, break_time } => {
+                let res = handler.pomodoro_service.start(*duration, *break_time);
+                handler.notifier.send("Pomodoro", &res);
+                Ok(res)
             },
             PomodoroCommand::Stop => {
                 handler.notifier.send("Pomodoro", "Pomodoro stopped");
@@ -46,18 +47,18 @@ impl Command for PomodoroCommand {
 
 pub struct CommandHandler<'a> {
     db_connection: &'a DbConnection,
-    notifier: &'a dyn Notifier,
+    notifier: Arc<&'a(dyn Notifier + Send + Sync)>,
     pomodoro_service: PomodoroService,
 }
 
 
 impl<'a> CommandHandler<'a> {
     pub fn new(db_connection: &'a DbConnection,
-               notifier: &'a dyn Notifier,) -> Self {
+               notifier: Arc<&(dyn Notifier + Send + Sync)>) -> Self {
         CommandHandler {
             db_connection,
             notifier,
-            pomodoro_service: PomodoroService::new(),
+            pomodoro_service: PomodoroService::new(notifier.clone()),
         }
     }
 

@@ -8,7 +8,7 @@ pub mod commands {
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
     pub enum PomodoroCommand {
-        Start,
+        Start { duration: u64, break_time: u64 },
         Stop,
         Status,
     }
