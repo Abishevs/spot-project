@@ -1,3 +1,3 @@
-alias ddeamon="./scripts/redeploy.sh"
-alias cbuild="cargo build && ddeamon"
+alias ddaemon="./scripts/redeploy.sh"
+alias cbuild="cargo build && ddaemon"
 alias spot="./target/debug/spot-cli"

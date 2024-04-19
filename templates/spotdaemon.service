@@ -5,7 +5,7 @@ After=network-online.target
 
 [Service]
 Type=simple
-ExecStart=%h/.cargo/bin/spot-deamon
+ExecStart=%h/.cargo/bin/spot-daemon
 Restart=on-failure
 RestartSec=5
 

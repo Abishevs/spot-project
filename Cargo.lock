@@ -1719,7 +1719,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "spot-deamon"
+name = "spot-daemon"
 version = "0.1.0"
 dependencies = [
  "dirs",

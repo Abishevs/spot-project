@@ -3,5 +3,5 @@
 members = [
 	"spot-lib",
 	"spot-cli",
-	"spot-deamon",
+	"spot-daemon",
 ]
