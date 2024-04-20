@@ -1,89 +1,40 @@
-extern crate spot_lib;
+mod fetcher;
+mod picker;
+mod handler;
+mod cli;
 
-use clap::{Args, Parser, Subcommand};
-use std::os::unix::net::UnixStream;
-use std::io::{Write, BufRead, BufReader};
-use serde_json;
-
-use spot_lib::commands::{MainCommand, PomodoroCommand, Response};
-
-#[derive(Parser)]
-#[command(name = "spot",
-          version = "1.0",
-          about = "Software/Studying Pomodoro Organiser & Tracker",
-          long_about = None)]
-struct Cli {
-    #[command(subcommand)]
-    command: SubCommands,
-    #[clap( short, long, default_value_t = false, help = "Verbose mode- global")]
-    verbose: bool
-}
-
-#[derive(Subcommand)]
-enum SubCommands {
-    Config(Config),
-    Pomodoro(Pomodoro),
-}
-
-#[derive(Args)]
-struct Config {
-    #[arg(help = "Set the project name.")]
-    project_name: Option<String>,
-
-}
-
-#[derive(Args)]
-struct Pomodoro {
-    #[command(subcommand)]
-    command: PomodoroCommands,
-}
-
-#[derive(Subcommand, Clone)]
-enum PomodoroCommands {
-    Start {
-        #[clap(short, long, default_value_t = 25, help = "Duration of the Pomodoro in minutes.")]
-        duration: u64,
-        #[clap(short = 'b', long = "break", default_value_t = 5, help = "Break time in minutes after each Pomodoro.")]
-        break_time: u64
-    },
-    Stop,
-    Status,
-}
-
-impl From<PomodoroCommands> for PomodoroCommand {
-    fn from(cmd: PomodoroCommands) -> Self {
-        match cmd {
-            PomodoroCommands::Start {duration, break_time} => PomodoroCommand::Start { duration, break_time },
-            PomodoroCommands::Stop => PomodoroCommand::Stop,
-            PomodoroCommands::Status => PomodoroCommand::Status,
-        }
-    }
-}
+use std::process;
+use cli::{Cli, SubCommands};
+use clap::Parser;
+use fetcher::DaemonClient;
 
 fn main() -> std::io::Result<()> {
     let cli = Cli::parse();
+    let mut daemon_client = DaemonClient::new("/tmp/spot-daemon.socket");
+    match daemon_client.connect() {
+        Err(_) => {
+            eprintln!("ERROR: Failed to connect to SPOT Daemon, ensure it's active");
+            process::exit(1);
+        }, 
+        Ok(daemon_client) => daemon_client,
+    };
 
-    let mut stream = UnixStream::connect("/tmp/spot-deamon.socket")?;
-    match &cli.command {
+    let mut handler = handler::CommandHandler::new(&mut daemon_client);
+
+    let res = match &cli.command {
         SubCommands::Config(config) => {
-            if let Some(name) = &config.project_name {
-                println!("Configuring project name to: {}", name);
-            }
+            handler.handle_config(config)?
         }
         SubCommands::Pomodoro(pomodoro) => {
-            let command = PomodoroCommand::from(pomodoro.command.clone());
-            let main_command = MainCommand::Pomodoro(command);
-            let command_json = serde_json::to_string(&main_command)?;
-            stream.write_all(command_json.as_bytes())?;
-            stream.write_all(b"\n")?;
+            handler.handle_pomodoro(&pomodoro.command)?
 
-            if cli.verbose {
-                let mut reader = BufReader::new(stream);
-                let mut response = String::new();
-                reader.read_line(&mut response)?;
-                print!("{}", response);
-            }
         }
+        SubCommands::Session(session) => {
+            handler.handle_session(&session.command)?
+        }
+    };
+    if cli.verbose {
+        println!("{:?}", res);
     }
 
     Ok(())
