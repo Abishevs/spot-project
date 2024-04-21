@@ -3,12 +3,9 @@ use dirs::home_dir;
 use std::path::PathBuf;
 use std::io;
 
-pub fn get_db_path() -> PathBuf {
-    let mut path = home_dir().expect("Home directory not found");
-    path.push(".config");
-    path.push("spot");
-    path.push("cache.db");
-    path
+pub fn get_db_path(config_path: &PathBuf) -> PathBuf {
+    let db_path = config_path.join("cache.db");
+    db_path
 }
 
 pub fn create_config_dir() -> io::Result<PathBuf> {

@@ -34,6 +34,7 @@ impl PomodoroService {
         let notifier = Arc::clone(&self.notifier);
 
         thread::spawn(move || {
+            // Start session timer
             let start = Instant::now();
             let duration = Duration::from_secs(duration * 60);
 
@@ -49,7 +50,31 @@ impl PomodoroService {
             if let Some(sound_notifier) = notifier.as_any().downcast_ref::<DesktopNotifier>() {
                 sound_notifier.play_sound(SoundType::PomodoroEnd);
             }
+
+            // Start break Timer
+            let break_start = Instant::now();
+            let break_duration = Duration::from_secs(break_time * 60);
+
+            thread::sleep(Duration::from_secs(5));
+
+            notifier.send("Pomdoro", "Break started...");
+            if let Some(sound_notifier) = notifier.as_any().downcast_ref::<DesktopNotifier>() {
+                sound_notifier.play_sound(SoundType::BreakStart);
+            }
+
+            while break_start.elapsed() < break_duration {
+                if !is_running.load(Ordering::SeqCst) {
+                    println!("Timer stopped.");
+                    return;
+                }
+                thread::sleep(Duration::from_secs(1));
+            }
             
+            
+            notifier.send("Pomdoro", "Break Ended...");
+            if let Some(sound_notifier) = notifier.as_any().downcast_ref::<DesktopNotifier>() {
+                sound_notifier.play_sound(SoundType::BreakEnd);
+            }
             
             is_running.store(false, Ordering::SeqCst);
         });

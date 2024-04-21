@@ -6,7 +6,7 @@ use std::os::unix::net::UnixStream;
 use std::sync::Arc;
 use serde_json::Error;
 
-use spot_lib::commands::{MainCommand, PomodoroCommand, Response};
+use spot_lib::commands::{MainCommand, PomodoroCommand, Response, ProjectCommand};
 use crate::notify::Notifier;
 use crate::service::pomodoro::PomodoroService;
 use crate::database::DbConnection;
@@ -19,6 +19,43 @@ impl Command for MainCommand {
     fn execute(&self, handler: &mut CommandHandler) -> io::Result<String> {
         match self {
             MainCommand::Pomodoro(cmd) => cmd.execute(handler),
+            MainCommand::Project(cmd) => cmd.execute(handler),
+        }
+    }
+}
+
+impl Command for ProjectCommand {
+    fn execute(&self, handler: &mut CommandHandler) -> io::Result<String> {
+        match self {
+            ProjectCommand::New { project , tags} => {
+                let _ = tags;
+                match handler.db_connection.create_project(&project) {
+                    Ok(_) => Ok(format!("Project: name: {} created successfully.", project.name)),
+                    Err(e) => Err(io::Error::new(io::ErrorKind::Other, 
+                                                 format!("Failed to create project: {}",
+                                                         e))),
+                }
+                
+            },
+            ProjectCommand::List => {
+                match handler.db_connection.list_projects() {
+                    Ok(projects) if projects.is_empty() => Err(io::Error::new(io::ErrorKind::NotFound,
+                                                                              format!("No projects found."))),
+                    Ok(projects) => {
+                        println!("Projects listed: {:?}", &projects);
+                        Ok(serde_json::to_string(&projects)?)
+                    },
+                    Err(e) => Err(io::Error::new(io::ErrorKind::Other, 
+                                                 format!("Failed to list projects: {}",
+                                                         e))),
+                }
+            },
+            ProjectCommand::Find { project } => {
+                unimplemented!()
+            },
+            ProjectCommand::Update { project } => {
+                unimplemented!()
+            }
         }
     }
 }

@@ -32,6 +32,10 @@ fn main() -> std::io::Result<()> {
         SubCommands::Session(session) => {
             handler.handle_session(&session.command)?
         }
+
+        SubCommands::Project(project) => {
+            handler.handle_project(&project.command)?
+        }
     };
     if cli.verbose {
         println!("{:?}", res);

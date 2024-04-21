@@ -2,9 +2,10 @@ use std::os::unix::net::UnixStream;
 use std::io::{Write, BufRead, BufReader, self};
 use std::error::Error;
 
-use spot_lib::commands::MainCommand;
+use spot_lib::commands::{MainCommand, Response};
+use spot_lib::models;
 
-use crate::picker::Project;
+use crate::picker::ProjectAdapter;
 
 pub struct DaemonClient {
     stream: Option<UnixStream>,
@@ -40,23 +41,33 @@ impl DaemonClient {
         }
     }
 
-    pub fn fetch_projects(&self) -> Result<Vec<Project>, io::Error> {
+    pub fn fetch_projects(&mut self) -> Result<Vec<ProjectAdapter>, io::Error> {
         // Placeholder: Mock data Fetching from the daemon
-        let projects = vec![
-            Project { 
-                name: "project1".to_string(),
-                description: "descr1".to_string(),
-            },
-            Project { 
-                name: "project2".to_string(),
-                description: "descr2".to_string(),
-            },
+        let main_command = MainCommand::Project(spot_lib::commands::ProjectCommand::List);
+        let res = self.send_command(&main_command)
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Error handling list command: {}", e)))?;
 
-            Project { 
-                name: "project3".to_string(),
-                description: "descr3".to_string(),
+        // println!("RES: {:?}", res);
+        match serde_json::from_str::<Response>(&res) {
+            Ok(Response::Success(data)) => {
+                match serde_json::from_str::<Vec<models::Project>>(&data) {
+                    Ok(projects) => {
+                        println!("Projects: {:?}", projects);
+                        // Convert models::Project to ProjectAdapter here
+                        let project_adapters = projects.into_iter()
+                            .map(|proj| ProjectAdapter { project: proj })
+                            .collect::<Vec<ProjectAdapter>>();
+                        Ok(project_adapters)
+                    },
+                    Err(e) => Err(io::Error::new(io::ErrorKind::Other, format!("Error parsing projects: {}", e)))
+                }
             },
-        ];
-        Ok(projects)
+            Ok(Response::Error(msg)) => {
+                Err(io::Error::new(io::ErrorKind::Other, format!("Error from server: {}", msg)))
+            },
+            Err(e) => {
+                Err(io::Error::new(io::ErrorKind::Other, format!("Error deserializing response: {}", e)))
+            }
+        }
     }
 }

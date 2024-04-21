@@ -1,9 +1,12 @@
 pub mod commands {
     use serde::{Serialize, Deserialize};
 
+    use crate::models::{Project, Tag};
+
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
     pub enum MainCommand {
         Pomodoro(PomodoroCommand),
+        Project(ProjectCommand),
     }
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -14,9 +17,56 @@ pub mod commands {
     }
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    pub enum ProjectCommand {
+        New { project: Project , tags: Vec<Tag>}, 
+        Update { project: Project },
+        Find { project: Project },
+        List, // Returns projects
+    }
+
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    pub enum SessionCommand {
+        Start { project: Project }, 
+        Stop { project: Project },
+    }
+
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
     pub enum Response {
         Success(String),
         Error(String),
+    }
+}
+
+pub mod models {
+    use serde::{Serialize, Deserialize};
+    use chrono::NaiveDateTime;
+
+    #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+    pub struct Project {
+        pub id: Option<i64>, 
+        pub name: String,
+        pub cumulative_time: i64,
+        pub description: Option<String>,
+    }
+
+    #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+    pub struct Session {
+        pub id: Option<i64>,
+        pub project_id: i64,
+        pub start_time: NaiveDateTime,
+        pub end_time: Option<NaiveDateTime>,
+    }
+
+    #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+    pub struct Tag {
+        pub id: Option<i64>,
+        pub name: String,
+    }
+
+    #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+    pub struct ProjectTag {
+        pub project_id: i64,
+        pub tag_id: i64,
     }
 }
 

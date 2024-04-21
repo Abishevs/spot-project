@@ -1,5 +1,6 @@
 use clap::{Args, Parser, Subcommand};
-use spot_lib::commands::PomodoroCommand;
+use spot_lib::{commands::{PomodoroCommand, ProjectCommand}, models::Tag};
+use spot_lib::models::Project as ProjectModel;
 
 #[derive(Parser)]
 #[command(name = "spot",
@@ -17,6 +18,7 @@ pub struct Cli {
 pub enum SubCommands {
     Session(Session),
     Pomodoro(Pomodoro),
+    Project(Project),
     Config(Config),
 }
 
@@ -34,12 +36,56 @@ pub struct Session {
     pub command: SessionCommands,
 }
 
+#[derive(Args)]
+pub struct Project {
+    #[command(subcommand)]
+    pub command: ProjectCommands,
+}
+
+#[derive(Subcommand, Clone)]
+pub enum ProjectCommands {
+    New {
+        #[arg(help = "New Project name")]
+        name: String,
+        #[arg(short, long, help = "Project description")]
+        description: Option<String>,
+        #[clap(short,
+               long,
+               help = "Add project tags either with -t tag1 -t tag2 or -t 'tag1,tag2'",
+               use_value_delimiter = true)]
+        tags: Option<Vec<String>>,
+    },
+    List,
+}
+
+impl From<ProjectCommands> for ProjectCommand {
+    fn from(cmd: ProjectCommands) -> Self {
+        match cmd {
+            ProjectCommands::New { name, description, tags } => {
+                let project = ProjectModel { 
+                    id: None,
+                    name,
+                    description,
+                    cumulative_time: 0};
+
+                let tag_vec = tags.unwrap_or_else(Vec::new)
+                    .into_iter()
+                    .map(|tag_name| Tag {
+                        id: None,
+                        name: tag_name,
+                    }).collect::<Vec<Tag>>();
+
+                ProjectCommand::New { project, tags: tag_vec }
+
+            },
+            ProjectCommands::List => ProjectCommand::List,
+        }
+        
+    }
+    
+}
 #[derive(Subcommand, Clone)]
 pub enum SessionCommands {
-    New {
-        tags: Vec<String>,
-        name: String,
-    },
     Start,
     Stop,
 }

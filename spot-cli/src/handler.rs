@@ -1,6 +1,7 @@
-use spot_lib::commands::{MainCommand, PomodoroCommand};
+use spot_lib::commands::{MainCommand, PomodoroCommand, ProjectCommand};
+use spot_lib::models;
 
-use crate::{fetcher::DaemonClient, cli::Config, picker::show_picker_project};
+use crate::{fetcher::DaemonClient, cli::{Config, ProjectCommands}, picker::show_picker_project};
 use std::io;
 use crate::cli::{PomodoroCommands, SessionCommands};
 
@@ -47,6 +48,31 @@ impl<'a> CommandHandler<'a> {
 
                 }
             },
+        };
+        Ok(res)
+    }
+
+    pub fn handle_project(&mut self, command: &ProjectCommands) -> io::Result<String> {
+        let res = match command {
+            ProjectCommands::New { name, description, tags } => {
+                println!("name: {:?}, descr: {:?} tags: {:?}", name, description, tags);
+                let command = ProjectCommand::from(command.clone());  
+                let main_command = MainCommand::Project(command);
+                match self.daemon_client.send_command(&main_command) {
+                    Ok(res) => res,
+                    Err(e) => format!("ERROR: handling pomodoro command: {}", e),
+
+                }
+            },
+
+            ProjectCommands::List => { 
+                println!("Listing all projects");
+                match self.daemon_client.fetch_projects() {
+                    Ok(res) => format!("projects: {:?}", res),
+                    Err(e) => format!("ERROR: {}", e),
+                }
+
+            }
         };
         Ok(res)
     }

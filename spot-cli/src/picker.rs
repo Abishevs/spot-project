@@ -2,25 +2,32 @@ use std::sync::Arc;
 use std::thread;
 use skim::prelude::*;
 use std::io;
+// use spot_lib::models::{ProjectTag, Session, Tag};
+use spot_lib::models::Project as LibProject;
 
-// impl display!!!
 #[derive(Clone, Debug)]
-pub struct Project {
-    pub name: String,
-    pub description: String,
+pub struct ProjectAdapter {
+    pub project: LibProject,
 }
 
-impl SkimItem for Project {
+impl ProjectAdapter {
+    pub fn from_project(project: LibProject) -> Self {
+        ProjectAdapter { project }
+    }
+    
+}
+
+impl SkimItem for ProjectAdapter {
     fn text(&self) -> Cow<str> {
-        Cow::Borrowed(&self.name)
+        Cow::Borrowed(&self.project.name)
     }
 
     fn preview(&self, _context: PreviewContext) -> ItemPreview {
-        ItemPreview::Text(self.description.clone())
+        ItemPreview::Text(self.project.description.clone().unwrap_or_default())
     }
 }
 
-pub fn show_picker_project(projects: Vec<Project>) -> io::Result<Option<Project>> {
+pub fn show_picker_project(projects: Vec<ProjectAdapter>) -> io::Result<Option<ProjectAdapter>> {
     let options = SkimOptionsBuilder::default()
         .height(Some("50%"))
         .preview(Some(""))
@@ -41,8 +48,8 @@ pub fn show_picker_project(projects: Vec<Project>) -> io::Result<Option<Project>
         .map(|out| out.selected_items)
         .unwrap_or_else(Vec::new)
         .iter()
-        .map(|selected_item| (**selected_item).as_any().downcast_ref::<Project>().unwrap().to_owned())
-        .collect::<Vec<Project>>();
+        .map(|selected_item| (**selected_item).as_any().downcast_ref::<ProjectAdapter>().unwrap().to_owned())
+        .collect::<Vec<ProjectAdapter>>();
 
     for item in selected_items {
         return Ok(Some(item));
