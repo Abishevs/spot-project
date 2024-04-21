@@ -1,4 +1,4 @@
-use spot_lib::commands::{MainCommand, PomodoroCommand, ProjectCommand};
+use spot_lib::commands::{self, MainCommand, PomodoroCommand, ProjectCommand};
 use spot_lib::models;
 
 use crate::{fetcher::DaemonClient, cli::{Config, ProjectCommands}, picker::show_picker_project};
@@ -60,7 +60,7 @@ impl<'a> CommandHandler<'a> {
                 let main_command = MainCommand::Project(command);
                 match self.daemon_client.send_command(&main_command) {
                     Ok(res) => res,
-                    Err(e) => format!("ERROR: handling pomodoro command: {}", e),
+                    Err(e) => format!("ERROR: handling project command: {}", e),
 
                 }
             },
@@ -77,21 +77,29 @@ impl<'a> CommandHandler<'a> {
         Ok(res)
     }
 
-    pub fn handle_session(&mut self, command: &SessionCommands) -> io::Result<String> {
-        match command {
+    pub fn handle_session(&mut self, cmd: &SessionCommands) -> io::Result<String> {
+        let res = match cmd {
             SessionCommands::Start => {
-                let projects = self.daemon_client.fetch_projects()?;
-                let selected_project = show_picker_project(projects)?;
-                match selected_project {
+                let project_adapters = self.daemon_client.fetch_projects()?;
+                let selected_project_adapter = show_picker_project(project_adapters)?;
+                match selected_project_adapter {
                     Some(project) => {
-                        Ok(format!("selected project: {:?}", project))
+                        let command = commands::SessionCommand::Start { project: project.project.clone() };
+                        let main_command = MainCommand::Session(command);
+                        println!("DEBUG: {:?}", main_command);
+                        match self.daemon_client.send_command(&main_command) {
+                            Ok(res) => res,
+                            Err(e) => format!("ERROR: handling session command: {}", e),
+                            // Ok(format!("selected project: {:?}", project))
+                        }
                     },
-                    None => Ok(format!("Project not found")),
+                    None => format!("Project not found"),
                 }
 
             }
-            _ => Ok(format!("Not impl"))
-        }
+            _ => format!("Not impl")
+        };
+        Ok(res)
     }
 
     pub fn handle_config(&mut self, _command: &Config) -> io::Result<String> {

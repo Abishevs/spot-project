@@ -28,7 +28,9 @@ impl DaemonClient {
     // Takes in a shared MainCommand Enum which is serilizable
     pub fn send_command(&mut self, main_command: &MainCommand) -> Result<String, io::Error>{
         let command_json = serde_json::to_string(&main_command)?;
-        if let Some(mut stream) = self.stream.take() {
+        // Dont take? Got problems with taking ownership... before
+        // if let Some(mut stream) = self.stream.take() {
+        if let Some(stream) = &mut self.stream {
             stream.write_all(command_json.as_bytes())?;
             stream.write_all(b"\n")?;
 

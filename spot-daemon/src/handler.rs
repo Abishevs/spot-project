@@ -6,7 +6,7 @@ use std::os::unix::net::UnixStream;
 use std::sync::Arc;
 use serde_json::Error;
 
-use spot_lib::commands::{MainCommand, PomodoroCommand, Response, ProjectCommand};
+use spot_lib::commands::{MainCommand, PomodoroCommand, ProjectCommand, Response, SessionCommand};
 use crate::notify::Notifier;
 use crate::service::pomodoro::PomodoroService;
 use crate::database::DbConnection;
@@ -20,23 +20,38 @@ impl Command for MainCommand {
         match self {
             MainCommand::Pomodoro(cmd) => cmd.execute(handler),
             MainCommand::Project(cmd) => cmd.execute(handler),
+            MainCommand::Session(cmd) => cmd.execute(handler),
         }
     }
+}
+
+impl Command for SessionCommand {
+    fn execute(&self, handler: &mut CommandHandler) -> io::Result<String> {
+        match self {
+            SessionCommand::Start { project } => {
+                println!("HELLOOO=???");
+                let msg = format!("Started lets goo\n Project: {:?}", project);
+                handler.notifier.send("Session",
+                                      &msg.to_string());
+                Ok(msg)
+                // unimplemented!()
+            },
+            SessionCommand::Stop { project } => {!unimplemented!()},
+        }
+    }
+    
 }
 
 impl Command for ProjectCommand {
     fn execute(&self, handler: &mut CommandHandler) -> io::Result<String> {
         match self {
             ProjectCommand::New { project , tags} => {
-                let _ = tags;
-                match handler.db_connection.create_project(&project) {
-                    Ok(_) => Ok(format!("Project: name: {} created successfully.", project.name)),
-                    Err(e) => Err(io::Error::new(io::ErrorKind::Other, 
-                                                 format!("Failed to create project: {}",
-                                                         e))),
+                match handler.db_connection.create_project_with_tags(project.clone(), tags.to_vec()) {
+                    Ok(res) => Ok(res),
+                    Err(e) => Err(e),
                 }
-                
             },
+
             ProjectCommand::List => {
                 match handler.db_connection.list_projects() {
                     Ok(projects) if projects.is_empty() => Err(io::Error::new(io::ErrorKind::NotFound,
@@ -83,14 +98,14 @@ impl Command for PomodoroCommand {
 }
 
 pub struct CommandHandler<'a> {
-    db_connection: &'a DbConnection,
+    db_connection: &'a mut DbConnection,
     notifier: Arc<dyn Notifier + Send + Sync>,
     pomodoro_service: PomodoroService,
 }
 
 
 impl<'a> CommandHandler<'a> {
-    pub fn new(db_connection: &'a DbConnection,
+    pub fn new(db_connection: &'a mut DbConnection,
                notifier: Arc<(dyn Notifier + Send + Sync)>) -> Self {
         let pomodoro_service = PomodoroService::new(Arc::clone(&notifier));
         CommandHandler {

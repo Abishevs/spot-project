@@ -1,5 +1,5 @@
 use clap::{Args, Parser, Subcommand};
-use spot_lib::{commands::{PomodoroCommand, ProjectCommand}, models::Tag};
+use spot_lib::{commands::{PomodoroCommand, ProjectCommand, SessionCommand}, models::Tag};
 use spot_lib::models::Project as ProjectModel;
 
 #[derive(Parser)]

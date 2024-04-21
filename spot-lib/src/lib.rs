@@ -7,6 +7,7 @@ pub mod commands {
     pub enum MainCommand {
         Pomodoro(PomodoroCommand),
         Project(ProjectCommand),
+        Session(SessionCommand),
     }
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -45,7 +46,7 @@ pub mod models {
     pub struct Project {
         pub id: Option<i64>, 
         pub name: String,
-        pub cumulative_time: i64,
+        pub cumulative_time: i64, // in Seconds?
         pub description: Option<String>,
     }
 
