@@ -96,8 +96,23 @@ impl<'a> CommandHandler<'a> {
                     None => format!("Project not found"),
                 }
 
+            },
+            SessionCommands::End => {
+                let cmd= commands::SessionCommand::End;
+                let main_cmd = MainCommand::Session(cmd);
+                match self.daemon_client.send_command(&main_cmd) {
+                    Ok(res) => res,
+                    Err(e) => format!("ERROR: handling session command: {}", e),
+                }
+            },
+            SessionCommands::Status => {
+                let cmd= commands::SessionCommand::Status;
+                let main_cmd = MainCommand::Session(cmd);
+                match self.daemon_client.send_command(&main_cmd) {
+                    Ok(res) => res,
+                    Err(e) => format!("ERROR: handling session command: {}", e),
+                }
             }
-            _ => format!("Not impl")
         };
         Ok(res)
     }

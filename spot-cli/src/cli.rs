@@ -87,7 +87,8 @@ impl From<ProjectCommands> for ProjectCommand {
 #[derive(Subcommand, Clone)]
 pub enum SessionCommands {
     Start,
-    Stop,
+    End,
+    Status,
 }
 
 #[derive(Args)]

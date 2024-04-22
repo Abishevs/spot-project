@@ -4,6 +4,7 @@ use skim::prelude::*;
 use std::io;
 // use spot_lib::models::{ProjectTag, Session, Tag};
 use spot_lib::models::Project as LibProject;
+use spot_lib::utils::format_duration;
 
 #[derive(Clone, Debug)]
 pub struct ProjectAdapter {
@@ -23,7 +24,16 @@ impl SkimItem for ProjectAdapter {
     }
 
     fn preview(&self, _context: PreviewContext) -> ItemPreview {
-        ItemPreview::Text(self.project.description.clone().unwrap_or_default())
+        let name = self.project.name.clone();
+        let desc = self.project.description.clone().unwrap_or_default();
+        let cum_time = self.project.cumulative_time.clone();
+
+        let formated_time = format_duration(cum_time);
+        ItemPreview::Text(format!(
+                "Project\nName: {}\nTotal Time spent: {}\nDescription: {}",
+                name,
+                formated_time,
+                desc))
     }
 }
 

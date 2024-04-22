@@ -9,7 +9,7 @@ mod config;
 use std::sync::Arc;
 use std::io::{self, ErrorKind};
 use service::api::ApiService;
-use utils::create_config_dir;
+use utils::{create_config_dir, get_db_path};
 
 fn main() -> std::io::Result<()> {
     let config = config::Config::new("/tmp/spot-daemon.socket");

@@ -7,6 +7,7 @@ use std::sync::Arc;
 use serde_json::Error;
 
 use spot_lib::commands::{MainCommand, PomodoroCommand, ProjectCommand, Response, SessionCommand};
+use spot_lib::models::Session;
 use crate::notify::Notifier;
 use crate::service::pomodoro::PomodoroService;
 use crate::database::DbConnection;
@@ -29,14 +30,60 @@ impl Command for SessionCommand {
     fn execute(&self, handler: &mut CommandHandler) -> io::Result<String> {
         match self {
             SessionCommand::Start { project } => {
-                println!("HELLOOO=???");
-                let msg = format!("Started lets goo\n Project: {:?}", project);
+                if handler.current_session.is_some() {
+                    let msg = format!("Session already running");
+                    handler.notifier.send("Session Error: ", &msg);
+                    return Err(io::Error::new(io::ErrorKind::Other, msg))
+                }
+                match handler.db_connection.start_session(project) {
+                    Ok(session) => handler.current_session = Some(session),
+                    Err(_) => (),
+                };
+                let res = format!("Started session for \n Project name: {}", project.name);
                 handler.notifier.send("Session",
-                                      &msg.to_string());
-                Ok(msg)
-                // unimplemented!()
+                                      &res.to_string());
+
+                Ok(res)
             },
-            SessionCommand::Stop { project } => {!unimplemented!()},
+            SessionCommand::End => {
+            println!("DEBUG: {:?}", SessionCommand::End);
+                let res = match &handler.current_session {
+                    Some(session) => {
+                        let _ = handler.db_connection.end_session(&session);
+                        handler.current_session = None;
+                        let msg = format!("Session ended");
+                        handler.notifier.send("Session", &msg);
+                        msg
+                    },
+                    None => {
+                        let msg = format!("No active session");
+                        handler.notifier.send("Session", &msg);
+                        msg
+                    },
+                };
+
+                Ok(res)
+            },
+            SessionCommand::Status => {
+                let res = match &handler.current_session {
+                    Some(session) => {
+                        let project_id = session.project_id.clone();
+                        let project = handler.db_connection.get_project_by_id(project_id)?;
+                        let msg = format!(
+                            "Project name: {}\n Session running for: {}", 
+                            &project.name,
+                            session.status());
+                        handler.notifier.send("Session", &msg);
+                        msg
+                    },
+                    None => {
+                        let msg = format!("No active session");
+                        handler.notifier.send("Session", &msg);
+                        msg
+                    },
+                };
+                Ok(res)
+            },
         }
     }
     
@@ -46,10 +93,11 @@ impl Command for ProjectCommand {
     fn execute(&self, handler: &mut CommandHandler) -> io::Result<String> {
         match self {
             ProjectCommand::New { project , tags} => {
-                match handler.db_connection.create_project_with_tags(project.clone(), tags.to_vec()) {
-                    Ok(res) => Ok(res),
-                    Err(e) => Err(e),
-                }
+                handler.db_connection.create_project_with_tags(project.clone(), tags.to_vec())
+                // match handler.db_connection.create_project_with_tags(project.clone(), tags.to_vec()) {
+                //     Ok(res) => Ok(res),
+                //     Err(e) => Err(e),
+                // }
             },
 
             ProjectCommand::List => {
@@ -65,12 +113,8 @@ impl Command for ProjectCommand {
                                                          e))),
                 }
             },
-            ProjectCommand::Find { project } => {
-                unimplemented!()
-            },
-            ProjectCommand::Update { project } => {
-                unimplemented!()
-            }
+            ProjectCommand::Find { project } => { todo!() },
+            ProjectCommand::Update { project } => { todo!() }
         }
     }
 }
@@ -101,6 +145,7 @@ pub struct CommandHandler<'a> {
     db_connection: &'a mut DbConnection,
     notifier: Arc<dyn Notifier + Send + Sync>,
     pomodoro_service: PomodoroService,
+    current_session: Option<Session>,
 }
 
 
@@ -112,6 +157,7 @@ impl<'a> CommandHandler<'a> {
             db_connection,
             notifier,
             pomodoro_service,
+            current_session: None,
         }
     }
 

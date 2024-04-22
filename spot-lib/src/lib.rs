@@ -1,7 +1,7 @@
 pub mod commands {
     use serde::{Serialize, Deserialize};
 
-    use crate::models::{Project, Tag};
+    use crate::models::{Project, Session, Tag};
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
     pub enum MainCommand {
@@ -28,7 +28,9 @@ pub mod commands {
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
     pub enum SessionCommand {
         Start { project: Project }, 
-        Stop { project: Project },
+        End,
+        Status,
+
     }
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -58,6 +60,31 @@ pub mod models {
         pub end_time: Option<NaiveDateTime>,
     }
 
+    impl Session {
+        pub fn status(&self) -> String {
+            use chrono::Utc;
+            let now = Utc::now().naive_utc();
+
+            let duration = now.signed_duration_since(self.start_time);
+
+            let days = duration.num_days();
+            let hours = duration.num_hours() % 24;
+            let minutes = duration.num_minutes() % 60;
+            let seconds = duration.num_seconds() % 60;
+
+            format!("{} days, {} hours, {} minutes, {} seconds", days, hours, minutes, seconds)
+        }
+
+        pub fn duration_in_seconds(&self) -> i64 {
+            use chrono::Utc;
+
+            let end_time = Utc::now().naive_utc();
+            let duration = end_time - self.start_time;
+            duration.num_seconds()
+        }
+
+    }
+
     #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
     pub struct Tag {
         pub id: Option<i64>,
@@ -68,6 +95,14 @@ pub mod models {
     pub struct ProjectTag {
         pub project_id: i64,
         pub tag_id: i64,
+    }
+}
+
+pub mod utils {
+    pub fn format_duration(seconds: i64) -> String {
+        let hours = seconds as f64 / 3600.0;
+
+        format!("{:.2} hours", hours)
     }
 }
 

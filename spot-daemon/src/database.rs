@@ -148,7 +148,19 @@ impl DbConnection {
     pub fn delete_project(&self, project: &Project) {
     }
 
-    pub fn get_project(&self, project: &Project) {
+    pub fn get_project_by_id(&self, project_id: i64) -> io::Result<Project> {
+        self.conn.query_row("SELECT id, name, cumulative_time, description FROM projects WHERE id = ?",
+                            [project_id],
+                            |row| {
+            Ok(Project {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                cumulative_time: row.get(2)?,
+                description: row.get(3)?,
+            })
+        }).map_err(|e| {
+            io::Error::new(io::ErrorKind::Other, format!("Failed to fetch project with id: '{}': {}", project_id, e))
+        })
     }
 
     pub fn list_projects(&self) -> Result<Vec<Project>>{
@@ -188,12 +200,21 @@ impl DbConnection {
         })
     }
 
-    pub fn end_session(&self, session: &Session) -> Result<()>{
+    pub fn end_session(&self, session: &Session) -> Result<()> {
         let end_time = Utc::now().naive_utc();
+        let session_duration = session.duration_in_seconds();
 
         self.conn.execute(
-            "SELECT sessions SET end_time = ? WHERE id = ?",
+            "UPDATE sessions SET end_time = ? WHERE id = ?",
             params![end_time, session.id]
+            )?;
+
+        let mut project = self.get_project_by_id(session.project_id.clone()).unwrap(); println!("DEBUG: {:?}", project);
+        project.cumulative_time += session_duration;
+
+        self.conn.execute(
+            "UPDATE projects SET cumulative_time = ? WHERE id = ?",
+            params![project.cumulative_time, project.id],
             )?;
 
         Ok(())
