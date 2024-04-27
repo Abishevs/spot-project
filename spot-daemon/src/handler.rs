@@ -168,7 +168,7 @@ impl<'a> CommandHandler<'a> {
         for line in reader.lines() {
             let line = line?;
             let command: Result<MainCommand, Error> = serde_json::from_str(&line);
-            println!("{}", &line.to_string());
+            println!("DEBUG: cmd recived: {}", &line.to_string());
 
             let response = match command {
                 Ok(cmd) => {
@@ -181,6 +181,7 @@ impl<'a> CommandHandler<'a> {
             };
 
             if let Ok(json) = response {
+                println!("DEBUG: cmd to be sent: {}", json);
                 writer.write_all(json.as_bytes())?;
                 writer.write_all(b"\n")?;
                 writer.flush()?;

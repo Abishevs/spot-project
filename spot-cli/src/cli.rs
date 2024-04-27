@@ -1,5 +1,6 @@
 use clap::{Args, Parser, Subcommand};
-use spot_lib::{commands::{PomodoroCommand, ProjectCommand, SessionCommand}, models::Tag};
+use clap_complete::Shell;
+use spot_lib::{commands::{PomodoroCommand, ProjectCommand}, models::Tag};
 use spot_lib::models::Project as ProjectModel;
 
 #[derive(Parser)]
@@ -16,11 +17,22 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum SubCommands {
+    /// Manage sessions
     Session(Session),
     Pomodoro(Pomodoro),
+    /// Manage projects
     Project(Project),
+    /// Nada here
     Config(Config),
+    /// returns stdout: > spot-completions.zsh
+    GenerateCompletions {
+        /// Specify the shell for the completion script
+        #[arg(short, long)]
+        shell: Shell,
+    },
+
 }
+
 
 #[derive(Args)]
 pub struct Config {
@@ -44,6 +56,7 @@ pub struct Project {
 
 #[derive(Subcommand, Clone)]
 pub enum ProjectCommands {
+    /// Creates new project
     New {
         #[arg(help = "New Project name")]
         name: String,
@@ -55,6 +68,7 @@ pub enum ProjectCommands {
                use_value_delimiter = true)]
         tags: Option<Vec<String>>,
     },
+    /// List sessions
     List,
 }
 
@@ -86,8 +100,11 @@ impl From<ProjectCommands> for ProjectCommand {
 }
 #[derive(Subcommand, Clone)]
 pub enum SessionCommands {
+    /// Opens fuzzy finder
     Start,
+    /// Ends session
     End,
+    /// Show status notification
     Status,
 }
 

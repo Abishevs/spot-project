@@ -5,7 +5,8 @@ mod cli;
 
 use std::process;
 use cli::{Cli, SubCommands};
-use clap::Parser;
+use clap::{CommandFactory, Parser};
+use clap_complete;
 use fetcher::DaemonClient;
 
 fn main() -> std::io::Result<()> {
@@ -36,6 +37,11 @@ fn main() -> std::io::Result<()> {
         SubCommands::Project(project) => {
             handler.handle_project(&project.command)?
         }
+        SubCommands::GenerateCompletions { shell } => {
+            let mut app = Cli::command();
+            clap_complete::generate(*shell, &mut app, "spot-cli", &mut std::io::stdout());
+            return Ok(());
+        },
     };
     if cli.verbose {
         println!("{:?}", res);
