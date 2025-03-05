@@ -1,6 +1,9 @@
-use std::{thread, u64};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 use std::time::{Duration, Instant};
-use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+use std::{thread, u64};
 
 use crate::notify::{DesktopNotifier, SoundCapable, SoundType};
 use crate::{models::pomodoro::PomodoroTimer, notify::Notifier};
@@ -26,7 +29,10 @@ impl PomodoroService {
 
         let timer = PomodoroTimer::new(duration, break_time);
         self.pomodoro_timer = Some(timer);
-        let timer = self.pomodoro_timer.as_mut().expect("PomodoroTimer must be started");
+        let timer = self
+            .pomodoro_timer
+            .as_mut()
+            .expect("PomodoroTimer must be started");
         timer.start();
 
         self.is_running.store(true, Ordering::SeqCst);
@@ -69,18 +75,16 @@ impl PomodoroService {
                 }
                 thread::sleep(Duration::from_secs(1));
             }
-            
-            
+
             notifier.send("Pomdoro", "Break Ended...");
             if let Some(sound_notifier) = notifier.as_any().downcast_ref::<DesktopNotifier>() {
                 sound_notifier.play_sound(SoundType::BreakEnd);
             }
-            
+
             is_running.store(false, Ordering::SeqCst);
         });
         format!("Pomodoro started")
-
-}
+    }
 
     pub fn stop(&mut self) {
         if self.pomodoro_timer.is_some() {

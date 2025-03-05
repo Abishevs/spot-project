@@ -1,14 +1,14 @@
-mod notify;
-mod handler;
-mod service;
-mod database;
-mod models;
-mod utils;
 mod config;
+mod database;
+mod handler;
+mod models;
+mod notify;
+mod service;
+mod utils;
 
-use std::sync::Arc;
-use std::io::{self, ErrorKind};
 use service::api::ApiService;
+use std::io::{self, ErrorKind};
+use std::sync::Arc;
 use utils::{create_config_dir, get_db_path};
 
 fn main() -> std::io::Result<()> {
@@ -22,14 +22,17 @@ fn main() -> std::io::Result<()> {
         Ok(conn) => conn,
         Err(e) => {
             eprintln!("Failed to initialize database: {}", e);
-            return Err(io::Error::new(ErrorKind::Other, "Failed to initialize database"));
+            return Err(io::Error::new(
+                ErrorKind::Other,
+                "Failed to initialize database",
+            ));
         }
     };
 
     // clean up db
-    // let _ = std::fs::remove_file(get_db_path(&config_path)).ok();  
-    // clean up 
-    let _ = std::fs::remove_file(&config.socket_path).ok();  
+    // let _ = std::fs::remove_file(get_db_path(&config_path)).ok();
+    // clean up
+    let _ = std::fs::remove_file(&config.socket_path).ok();
 
     // Setup components
     let notifier = Arc::new(notify::DesktopNotifier);
@@ -44,4 +47,3 @@ fn main() -> std::io::Result<()> {
     }
     Ok(())
 }
-

@@ -1,2 +1,2 @@
-pub mod pomodoro;
 pub mod api;
+pub mod pomodoro;

@@ -1,7 +1,10 @@
 use clap::{Args, Parser, Subcommand};
 use clap_complete::Shell;
-use spot_lib::{commands::{PomodoroCommand, ProjectCommand}, models::Tag};
 use spot_lib::models::Project as ProjectModel;
+use spot_lib::{
+    commands::{PomodoroCommand, ProjectCommand},
+    models::Tag,
+};
 
 #[derive(Parser)]
 #[command(name = "spot",
@@ -11,8 +14,8 @@ use spot_lib::models::Project as ProjectModel;
 pub struct Cli {
     #[command(subcommand)]
     pub command: SubCommands,
-    #[clap( short, long, default_value_t = false, help = "Verbose mode- global")]
-    pub verbose: bool
+    #[clap(short, long, default_value_t = false, help = "Verbose mode- global")]
+    pub verbose: bool,
 }
 
 #[derive(Subcommand)]
@@ -30,17 +33,13 @@ pub enum SubCommands {
         #[arg(short, long)]
         shell: Shell,
     },
-
 }
-
 
 #[derive(Args)]
 pub struct Config {
     #[arg(help = "Set the project name.")]
     pub project_name: Option<String>,
-
 }
-
 
 #[derive(Args)]
 pub struct Session {
@@ -62,10 +61,12 @@ pub enum ProjectCommands {
         name: String,
         #[arg(short, long, help = "Project description")]
         description: Option<String>,
-        #[clap(short,
-               long,
-               help = "Add project tags either with -t tag1 -t tag2 or -t 'tag1,tag2'",
-               use_value_delimiter = true)]
+        #[clap(
+            short,
+            long,
+            help = "Add project tags either with -t tag1 -t tag2 or -t 'tag1,tag2'",
+            use_value_delimiter = true
+        )]
         tags: Option<Vec<String>>,
     },
     /// List sessions
@@ -75,28 +76,35 @@ pub enum ProjectCommands {
 impl From<ProjectCommands> for ProjectCommand {
     fn from(cmd: ProjectCommands) -> Self {
         match cmd {
-            ProjectCommands::New { name, description, tags } => {
-                let project = ProjectModel { 
+            ProjectCommands::New {
+                name,
+                description,
+                tags,
+            } => {
+                let project = ProjectModel {
                     id: None,
                     name,
                     description,
-                    cumulative_time: 0};
+                    cumulative_time: 0,
+                };
 
-                let tag_vec = tags.unwrap_or_else(Vec::new)
+                let tag_vec = tags
+                    .unwrap_or_else(Vec::new)
                     .into_iter()
                     .map(|tag_name| Tag {
                         id: None,
                         name: tag_name,
-                    }).collect::<Vec<Tag>>();
+                    })
+                    .collect::<Vec<Tag>>();
 
-                ProjectCommand::New { project, tags: tag_vec }
-
-            },
+                ProjectCommand::New {
+                    project,
+                    tags: tag_vec,
+                }
+            }
             ProjectCommands::List => ProjectCommand::List,
         }
-        
     }
-    
 }
 #[derive(Subcommand, Clone)]
 pub enum SessionCommands {
@@ -117,10 +125,20 @@ pub struct Pomodoro {
 #[derive(Subcommand, Clone)]
 pub enum PomodoroCommands {
     Start {
-        #[clap(short, long, default_value_t = 25, help = "Duration of the Pomodoro in minutes.")]
+        #[clap(
+            short,
+            long,
+            default_value_t = 25,
+            help = "Duration of the Pomodoro in minutes."
+        )]
         duration: u64,
-        #[clap(short = 'b', long = "break", default_value_t = 5, help = "Break time in minutes after each Pomodoro.")]
-        break_time: u64
+        #[clap(
+            short = 'b',
+            long = "break",
+            default_value_t = 5,
+            help = "Break time in minutes after each Pomodoro."
+        )]
+        break_time: u64,
     },
     Stop,
     Status,
@@ -129,7 +147,13 @@ pub enum PomodoroCommands {
 impl From<PomodoroCommands> for PomodoroCommand {
     fn from(cmd: PomodoroCommands) -> Self {
         match cmd {
-            PomodoroCommands::Start {duration, break_time} => PomodoroCommand::Start { duration, break_time },
+            PomodoroCommands::Start {
+                duration,
+                break_time,
+            } => PomodoroCommand::Start {
+                duration,
+                break_time,
+            },
             PomodoroCommands::Stop => PomodoroCommand::Stop,
             PomodoroCommands::Status => PomodoroCommand::Status,
         }

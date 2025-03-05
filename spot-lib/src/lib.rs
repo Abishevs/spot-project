@@ -1,5 +1,5 @@
 pub mod commands {
-    use serde::{Serialize, Deserialize};
+    use serde::{Deserialize, Serialize};
 
     use crate::models::{Project, Session, Tag};
 
@@ -19,7 +19,7 @@ pub mod commands {
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
     pub enum ProjectCommand {
-        New { project: Project , tags: Vec<Tag>}, 
+        New { project: Project, tags: Vec<Tag> },
         Update { project: Project },
         Find { project: Project },
         List, // Returns projects
@@ -27,10 +27,9 @@ pub mod commands {
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
     pub enum SessionCommand {
-        Start { project: Project }, 
+        Start { project: Project },
         End,
         Status,
-
     }
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -41,12 +40,12 @@ pub mod commands {
 }
 
 pub mod models {
-    use serde::{Serialize, Deserialize};
     use chrono::NaiveDateTime;
+    use serde::{Deserialize, Serialize};
 
     #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
     pub struct Project {
-        pub id: Option<i64>, 
+        pub id: Option<i64>,
         pub name: String,
         pub cumulative_time: i64, // in Seconds?
         pub description: Option<String>,
@@ -72,7 +71,10 @@ pub mod models {
             let minutes = duration.num_minutes() % 60;
             let seconds = duration.num_seconds() % 60;
 
-            format!("{} days, {} hours, {} minutes, {} seconds", days, hours, minutes, seconds)
+            format!(
+                "{} days, {} hours, {} minutes, {} seconds",
+                days, hours, minutes, seconds
+            )
         }
 
         pub fn duration_in_seconds(&self) -> i64 {
@@ -82,7 +84,6 @@ pub mod models {
             let duration = end_time - self.start_time;
             duration.num_seconds()
         }
-
     }
 
     #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -122,7 +123,10 @@ mod tests {
     fn test_deserialize_response_success() {
         let data = r#"{"Success":"Operation completed"}"#;
         let response: Response = serde_json::from_str(data).unwrap();
-        assert_eq!(response, Response::Success("Operation completed".to_string()));
+        assert_eq!(
+            response,
+            Response::Success("Operation completed".to_string())
+        );
     }
 
     #[test]
@@ -139,4 +143,3 @@ mod tests {
         assert_eq!(response, Response::Error("Failed to complete".to_string()));
     }
 }
-

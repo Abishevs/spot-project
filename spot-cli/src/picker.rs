@@ -1,7 +1,7 @@
-use std::sync::Arc;
-use std::thread;
 use skim::prelude::*;
 use std::io;
+use std::sync::Arc;
+use std::thread;
 // use spot_lib::models::{ProjectTag, Session, Tag};
 use spot_lib::models::Project as LibProject;
 use spot_lib::utils::format_duration;
@@ -15,7 +15,6 @@ impl ProjectAdapter {
     pub fn from_project(project: LibProject) -> Self {
         ProjectAdapter { project }
     }
-    
 }
 
 impl SkimItem for ProjectAdapter {
@@ -30,10 +29,9 @@ impl SkimItem for ProjectAdapter {
 
         let formated_time = format_duration(cum_time);
         ItemPreview::Text(format!(
-                "Project\nName: {}\nTotal Time spent: {}\nDescription: {}",
-                name,
-                formated_time,
-                desc))
+            "Project\nName: {}\nTotal Time spent: {}\nDescription: {}",
+            name, formated_time, desc
+        ))
     }
 }
 
@@ -46,7 +44,7 @@ pub fn show_picker_project(projects: Vec<ProjectAdapter>) -> io::Result<Option<P
         .unwrap();
 
     let (tx, rx): (SkimItemSender, SkimItemReceiver) = unbounded();
-    
+
     thread::spawn(move || {
         for project in projects {
             tx.send(Arc::new(project)).expect("Failed to send project");
@@ -58,13 +56,18 @@ pub fn show_picker_project(projects: Vec<ProjectAdapter>) -> io::Result<Option<P
         .map(|out| out.selected_items)
         .unwrap_or_else(Vec::new)
         .iter()
-        .map(|selected_item| (**selected_item).as_any().downcast_ref::<ProjectAdapter>().unwrap().to_owned())
+        .map(|selected_item| {
+            (**selected_item)
+                .as_any()
+                .downcast_ref::<ProjectAdapter>()
+                .unwrap()
+                .to_owned()
+        })
         .collect::<Vec<ProjectAdapter>>();
 
     for item in selected_items {
         return Ok(Some(item));
-    } 
+    }
 
     Ok(None)
 }
-

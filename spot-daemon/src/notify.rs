@@ -1,6 +1,6 @@
 use dirs::home_dir;
-use std::process::Command;
 use std::any::Any;
+use std::process::Command;
 
 use notify_rust::Notification;
 
@@ -23,7 +23,7 @@ fn get_sound_path(sound: SoundType) -> String {
 
 pub trait Notifier: Send + Sync {
     fn send(&self, title: &str, message: &str);
-    fn as_any(&self) -> &dyn Any; // Downcasting 
+    fn as_any(&self) -> &dyn Any; // Downcasting
 }
 
 pub trait SoundCapable: Send + Sync {
@@ -37,13 +37,13 @@ impl Notifier for DesktopNotifier {
         Notification::new()
             .summary(title)
             .body(&message)
-            .show().expect("Notfication send failed");
+            .show()
+            .expect("Notfication send failed");
     }
 
     fn as_any(&self) -> &dyn Any {
         self
     }
-    
 }
 
 impl SoundCapable for DesktopNotifier {
@@ -57,18 +57,13 @@ impl SoundCapable for DesktopNotifier {
 
         match extension {
             "wav" => {
-                let _ = Command::new("aplay")
-                    .arg(path)
-                    .output();
-            },
+                let _ = Command::new("aplay").arg(path).output();
+            }
             "mp3" => {
-                let res = Command::new("mpg123")
-                    .arg(path)
-                    .output();
+                let res = Command::new("mpg123").arg(path).output();
                 println!("RES: {:?}", &res);
-            },
+            }
             _ => eprintln!("Unsupported audio format"),
         }
     }
 }
-

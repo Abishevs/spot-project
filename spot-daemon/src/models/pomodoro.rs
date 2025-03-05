@@ -7,7 +7,6 @@ pub struct PomodoroTimer {
     start_time: Option<Instant>,
 }
 
-
 impl PomodoroTimer {
     pub fn new(duration_in_min: u64, break_time: u64) -> Self {
         PomodoroTimer {
@@ -35,7 +34,7 @@ impl PomodoroTimer {
                     let remaining = self.duration - elapsed;
                     self.format_duration(remaining)
                 }
-            },
+            }
             None => "Pomodoro not started".to_string(),
         }
     }
@@ -55,5 +54,4 @@ impl PomodoroTimer {
             format!("{} sec remaining", seconds)
         }
     }
-
 }

@@ -11,7 +11,7 @@ pub struct DbConnection {
 }
 
 //Test db
-// let project = Project{ 
+// let project = Project{
 //     id: None,
 //     name: "projecting 1".to_string(),
 //     cumulative_time: 0,
@@ -29,7 +29,7 @@ impl DbConnection {
         let mut conn = Connection::open(db_path)?;
         // Initialize connection
         let _ = Self::init_db(&conn);
-        Ok(Self { conn } )
+        Ok(Self { conn })
     }
 
     // Private init func
@@ -40,7 +40,7 @@ impl DbConnection {
                 name TEXT UNIQUE NOT NULL
                 )",
             [],
-            )?;
+        )?;
 
         conn.execute(
             "CREATE TABLE IF NOT EXISTS projects (
@@ -50,7 +50,7 @@ impl DbConnection {
                 description TEXT
                 )",
             [],
-            )?;
+        )?;
 
         conn.execute(
             "CREATE TABLE IF NOT EXISTS sessions (
@@ -61,7 +61,7 @@ impl DbConnection {
                 FOREIGN KEY (project_id) REFERENCES projects(id)
                 )",
             [],
-            )?;
+        )?;
 
         conn.execute(
             "CREATE TABLE IF NOT EXISTS project_tags (
@@ -72,7 +72,7 @@ impl DbConnection {
                 FOREIGN KEY (tag_id) REFERENCES tags(id)
                 )",
             [],
-            )?;
+        )?;
 
         Ok(())
     }
@@ -82,9 +82,7 @@ impl DbConnection {
         match tx.execute(
             "INSERT INTO projects (name, description)
              VALUES (?, ?)",
-            params![&project.name.to_lowercase(), 
-                    &project.description
-            ],
+            params![&project.name.to_lowercase(), &project.description],
         ) {
             Ok(_) => {
                 let id = tx.last_insert_rowid();
@@ -94,17 +92,32 @@ impl DbConnection {
                     description: project.description.clone(),
                     cumulative_time: 0,
                 })
-            },
-            Err(RusqliteError::SqliteFailure(err, Some(_msg))) if err.code == ErrorCode::ConstraintViolation => {
-                Err(RusqliteError::SqliteFailure(err, Some(format!("Project with name '{}' already exists.", &project.name))))
-            },
+            }
+            Err(RusqliteError::SqliteFailure(err, Some(_msg)))
+                if err.code == ErrorCode::ConstraintViolation =>
+            {
+                Err(RusqliteError::SqliteFailure(
+                    err,
+                    Some(format!(
+                        "Project with name '{}' already exists.",
+                        &project.name
+                    )),
+                ))
+            }
             Err(e) => Err(e),
         }
     }
 
-    pub fn create_project_with_tags(&mut self, project: Project, tags: Vec<Tag>) -> io::Result<String> {
+    pub fn create_project_with_tags(
+        &mut self,
+        project: Project,
+        tags: Vec<Tag>,
+    ) -> io::Result<String> {
         let mut tx = self.conn.transaction().map_err(|e| {
-            io::Error::new(io::ErrorKind::Other, format!("Failed to start transaction: {}", e))
+            io::Error::new(
+                io::ErrorKind::Other,
+                format!("Failed to start transaction: {}", e),
+            )
         })?;
 
         let mut new_tags = Vec::new();
@@ -113,57 +126,74 @@ impl DbConnection {
                 Ok(tag) => new_tags.push(tag),
                 Err(_) => {
                     let existing_tag = Self::get_tag_by_name(&tag.name, &mut tx)?;
-                    new_tags.push(existing_tag); 
+                    new_tags.push(existing_tag);
                 }
             }
         }
         let new_project = match Self::create_project(&project, &mut tx) {
             Ok(project) => project,
             Err(e) => {
-                let _ = tx.rollback(); 
-                return Err(io::Error::new(io::ErrorKind::Other, 
-                                          format!("Failed to create project: {}", e)));
+                let _ = tx.rollback();
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("Failed to create project: {}", e),
+                ));
             }
         };
 
         for tag in new_tags {
             if let Err(e) = Self::assign_tag_to_project(&tag, &new_project, &mut tx) {
-                let _ = tx.rollback(); 
-                return Err(io::Error::new(io::ErrorKind::Other,
-                                          format!("Failed to assign tag '{}' to project '{}'. Error: {}",
-                                                  tag.name, new_project.name, e)));
+                let _ = tx.rollback();
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!(
+                        "Failed to assign tag '{}' to project '{}'. Error: {}",
+                        tag.name, new_project.name, e
+                    ),
+                ));
             }
         }
 
         tx.commit().map_err(|e| {
-            io::Error::new(io::ErrorKind::Other, format!("Failed to commit transaction: {}", e))
+            io::Error::new(
+                io::ErrorKind::Other,
+                format!("Failed to commit transaction: {}", e),
+            )
         })?;
 
-        Ok(format!("Project '{}' created successfully with tags.", new_project.name))
-    }
-    
-    pub fn update_project(&self, project: &Project) {
+        Ok(format!(
+            "Project '{}' created successfully with tags.",
+            new_project.name
+        ))
     }
 
-    pub fn delete_project(&self, project: &Project) {
-    }
+    pub fn update_project(&self, project: &Project) {}
+
+    pub fn delete_project(&self, project: &Project) {}
 
     pub fn get_project_by_id(&self, project_id: i64) -> io::Result<Project> {
-        self.conn.query_row("SELECT id, name, cumulative_time, description FROM projects WHERE id = ?",
-                            [project_id],
-                            |row| {
-            Ok(Project {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                cumulative_time: row.get(2)?,
-                description: row.get(3)?,
+        self.conn
+            .query_row(
+                "SELECT id, name, cumulative_time, description FROM projects WHERE id = ?",
+                [project_id],
+                |row| {
+                    Ok(Project {
+                        id: row.get(0)?,
+                        name: row.get(1)?,
+                        cumulative_time: row.get(2)?,
+                        description: row.get(3)?,
+                    })
+                },
+            )
+            .map_err(|e| {
+                io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("Failed to fetch project with id: '{}': {}", project_id, e),
+                )
             })
-        }).map_err(|e| {
-            io::Error::new(io::ErrorKind::Other, format!("Failed to fetch project with id: '{}': {}", project_id, e))
-        })
     }
 
-    pub fn list_projects(&self) -> Result<Vec<Project>>{
+    pub fn list_projects(&self) -> Result<Vec<Project>> {
         let mut stmt = self.conn.prepare("SELECT * FROM projects")?;
         let project_iter = stmt.query_map([], |row| {
             Ok(Project {
@@ -188,7 +218,7 @@ impl DbConnection {
         self.conn.execute(
             "INSERT INTO sessions (project_id, start_time) VALUES (?1, ?2)",
             params![project.id, start_time],
-            )?;
+        )?;
 
         let last_id = self.conn.last_insert_rowid();
 
@@ -206,33 +236,31 @@ impl DbConnection {
 
         self.conn.execute(
             "UPDATE sessions SET end_time = ? WHERE id = ?",
-            params![end_time, session.id]
-            )?;
+            params![end_time, session.id],
+        )?;
 
-        let mut project = self.get_project_by_id(session.project_id.clone()).unwrap(); println!("DEBUG: {:?}", project);
+        let mut project = self.get_project_by_id(session.project_id.clone()).unwrap();
+        println!("DEBUG: {:?}", project);
         project.cumulative_time += session_duration;
 
         self.conn.execute(
             "UPDATE projects SET cumulative_time = ? WHERE id = ?",
             params![project.cumulative_time, project.id],
-            )?;
+        )?;
 
         Ok(())
     }
 
-    pub fn get_session(&self, session: &Session) {
-    }
+    pub fn get_session(&self, session: &Session) {}
 
-    pub fn list_sessions(&self, project: &Project) {
-    }
+    pub fn list_sessions(&self, project: &Project) {}
 
     // Tag managment
     fn create_tag(tag: &Tag, tx: &mut Transaction) -> Result<Tag> {
         match tx.execute(
             "INSERT INTO tags (name)
              VALUES (?)",
-            params![&tag.name.to_lowercase(), 
-            ],
+            params![&tag.name.to_lowercase(),],
         ) {
             Ok(_) => {
                 let id = tx.last_insert_rowid();
@@ -240,28 +268,31 @@ impl DbConnection {
                     id: Some(id),
                     name: tag.name.clone(),
                 })
-            },
-            Err(RusqliteError::SqliteFailure(err, 
-                                             Some(_msg))) if err.code == ErrorCode::ConstraintViolation => {
-                Err(RusqliteError::SqliteFailure(err, 
-                                                 Some(format!("Tag with name '{}' already exists.",
-                                                              &tag.name.to_lowercase()))))
-            },
+            }
+            Err(RusqliteError::SqliteFailure(err, Some(_msg)))
+                if err.code == ErrorCode::ConstraintViolation =>
+            {
+                Err(RusqliteError::SqliteFailure(
+                    err,
+                    Some(format!(
+                        "Tag with name '{}' already exists.",
+                        &tag.name.to_lowercase()
+                    )),
+                ))
+            }
             Err(e) => Err(e),
         }
     }
 
-    pub fn delete_tag(&self, tag: &Tag) {
-    }
+    pub fn delete_tag(&self, tag: &Tag) {}
 
-    fn assign_tag_to_project(tag: &Tag, project: &Project, tx:&mut Transaction) -> Result<()>{
+    fn assign_tag_to_project(tag: &Tag, project: &Project, tx: &mut Transaction) -> Result<()> {
         let sql = "INSERT INTO project_tags (project_id, tag_id) VALUES (?1, ?2)";
         tx.execute(sql, params![project.id, tag.id])?;
         Ok(())
     }
 
-    pub fn remove_tag_from_project(&self, tag: &Tag, project: &Project) {
-    }
+    pub fn remove_tag_from_project(&self, tag: &Tag, project: &Project) {}
 
     fn get_tag_by_name(name: &str, tx: &mut Transaction) -> Result<Tag, io::Error> {
         tx.query_row("SELECT id, name FROM tags WHERE name = ?", &[name], |row| {
@@ -269,12 +300,16 @@ impl DbConnection {
                 id: row.get(0)?,
                 name: row.get(1)?,
             })
-        }).map_err(|e| {
-            io::Error::new(io::ErrorKind::Other, format!("Failed to fetch tag '{}': {}", name, e))
+        })
+        .map_err(|e| {
+            io::Error::new(
+                io::ErrorKind::Other,
+                format!("Failed to fetch tag '{}': {}", name, e),
+            )
         })
     }
 
-    pub fn list_tags(&self) -> Result<Vec<Tag>>{
+    pub fn list_tags(&self) -> Result<Vec<Tag>> {
         let mut stmt = self.conn.prepare("SELECT * FROM tags")?;
         let tags_iter = stmt.query_map([], |row| {
             Ok(Tag {
@@ -289,6 +324,4 @@ impl DbConnection {
         }
         Ok(tags)
     }
-
 }
-

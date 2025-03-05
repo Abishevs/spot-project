@@ -1,7 +1,7 @@
-use std::fs::create_dir_all;
 use dirs::home_dir;
-use std::path::PathBuf;
+use std::fs::create_dir_all;
 use std::io;
+use std::path::PathBuf;
 
 pub fn get_db_path(config_path: &PathBuf) -> PathBuf {
     let db_path = config_path.join("cache.db");
@@ -15,8 +15,10 @@ pub fn create_config_dir() -> io::Result<PathBuf> {
 
         create_dir_all(&config_path)?;
         Ok(config_path)
-
     } else {
-        Err(io::Error::new(io::ErrorKind::NotFound, "Home directory not found"))
+        Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            "Home directory not found",
+        ))
     }
 }

@@ -1,5 +1,5 @@
-use std::os::unix::net::UnixListener;
 use std::io;
+use std::os::unix::net::UnixListener;
 
 pub trait ApiService {
     type Listener;
@@ -18,4 +18,3 @@ impl ApiService for UnixSocketService {
         Ok(listener)
     }
 }
-
